@@ -6,6 +6,8 @@ import { h } from '../core/dom.js';
 import { sanitizeToFragment } from '../core/sanitize.js';
 import { authorName, commentNames } from '../shared/nickname.js';
 import { formatShort, formatFull } from '../shared/format.js';
+import { commentDepths } from '../shared/comments.js';
+import { hasImage } from '../shared/schema.js';
 
 const fmtNumber = (n) => Number(n || 0).toLocaleString('ko-KR');
 
@@ -44,6 +46,7 @@ function renderList(view, links) {
       h('li', null,
         h('a', { class: 'cm-item', href: links.post(post.id) },
           h('div', { class: 'cm-item-title' },
+            hasImage(post) && h('span', { class: 'cm-item-img', 'aria-label': '이미지 포함' }, '🖼️'),
             post.title,
             post.comments.length > 0 && h('span', { class: 'cm-item-cnt' }, `[${post.comments.length}]`),
           ),
@@ -60,14 +63,18 @@ function renderList(view, links) {
 
 function renderComments(post) {
   const names = commentNames(post);
+  const depths = commentDepths(post.comments);
   return h('section', { class: 'cm-cmts' },
     h('div', { class: 'cm-cmts-head' }, '댓글 ', h('b', null, post.comments.length)),
     post.comments.length
       ? h('ul', { class: 'cm-cmt-list' },
           post.comments.map((c, i) =>
-            h('li', { class: names[i].isAuthor ? 'cm-cmt is-author' : 'cm-cmt' },
+            h('li', {
+              class: `cm-cmt${names[i].isAuthor ? ' is-author' : ''}${depths[i] ? ' is-reply' : ''}`,
+              style: depths[i] ? { '--depth': depths[i] } : null,
+            },
               h('div', { class: 'cm-cmt-head' },
-                h('span', { class: 'cm-cmt-nick' }, names[i].name),
+                h('span', { class: 'cm-cmt-nick' }, depths[i] > 0 && h('span', { class: 'cm-reply-mark', 'aria-hidden': 'true' }, 'ㄴ'), names[i].name),
                 h('span', { class: 'cm-cmt-date' }, formatShort(c.date)),
               ),
               h('p', { class: 'cm-cmt-text' }, c.text),

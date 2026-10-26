@@ -51,7 +51,7 @@ index.html              열람 사이트 (?id=공유ID → data/공유ID.json �
 editor.html             편집 사이트
 data/                   내보낸 결과물(.json)을 올리는 곳
 assets/css/             base(공통 색상·프레임) · site(가짜 사이트 화면) · editor(편집기)
-assets/js/shared/       데이터 구조(schema) · 닉네임 규칙(nickname) · 날짜(format) · ID
+assets/js/shared/       데이터 구조(schema) · 닉네임 규칙(nickname) · 대댓글 트리(comments) · 날짜(format) · ID
 assets/js/core/         DOM 헬퍼 · IndexedDB · 본문 HTML 정리기 · 이미지 축소 · 클립보드
 assets/js/site/         가짜 사이트 렌더러 (열람·미리보기 공통)
 assets/js/viewer/       열람 사이트 진입점

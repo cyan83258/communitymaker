@@ -6,7 +6,12 @@ export function h(tag, props, ...children) {
     for (const [key, value] of Object.entries(props)) {
       if (value == null || value === false) continue;
       if (key === 'class') el.className = value;
-      else if (key === 'style' && typeof value === 'object') Object.assign(el.style, value);
+      else if (key === 'style' && typeof value === 'object') {
+        for (const [prop, v] of Object.entries(value)) {
+          if (prop.startsWith('--')) el.style.setProperty(prop, v); // CSS 변수
+          else el.style[prop] = v;
+        }
+      }
       else if (key === 'dataset') Object.assign(el.dataset, value);
       else if (key.startsWith('on') && typeof value === 'function') el.addEventListener(key.slice(2).toLowerCase(), value);
       else if (key === 'value') el.value = value;

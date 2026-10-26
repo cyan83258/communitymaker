@@ -3,6 +3,7 @@
 import { uid, isId } from './id.js';
 import { toLocalInput, addMinutes, isLocalInput } from './format.js';
 import { normalizeNickBase, DEFAULT_NICK_BASE } from './nickname.js';
+import { toTreeOrder } from './comments.js';
 
 export const LIMITS = {
   projectName: 60,
@@ -68,6 +69,7 @@ export function createComment(post) {
     text: '',
     nick: '',
     isAuthor: false,
+    parentId: '', // 답글이면 부모 댓글 ID (comments.js 참고)
     date: addMinutes(last?.date || post?.date, 1),
   };
 }
@@ -99,6 +101,7 @@ export function normalizeComment(c = {}) {
     text: str(c.text, LIMITS.commentText),
     nick: str(c.nick, LIMITS.nick),
     isAuthor: c.isAuthor === true,
+    parentId: isId(c.parentId) ? c.parentId : '',
     date: date(c.date),
   };
 }
@@ -113,7 +116,7 @@ export function normalizePost(p = {}) {
     date: date(p.date),
     views: Number.isFinite(views) ? Math.min(Math.max(views, 0), LIMITS.views) : 0,
     bodyHtml: str(p.bodyHtml, LIMITS.bodyHtml),
-    comments: list(p.comments, LIMITS.comments, normalizeComment),
+    comments: toTreeOrder(list(p.comments, LIMITS.comments, normalizeComment)),
   };
 }
 
@@ -139,6 +142,11 @@ export function normalizeContent(p = {}) {
     banners: list(p.banners, LIMITS.banners, normalizeBanner),
     posts: list(p.posts, LIMITS.posts, normalizePost),
   };
+}
+
+/** 본문에 사진 또는 [이미지] 칸이 있는지 (목록의 🖼️ 표시용) */
+export function hasImage(post) {
+  return /class="cm-(?:img|ph)"/.test(post.bodyHtml);
 }
 
 /** 열람용으로 공개해도 되는 필드만 남긴다. */
