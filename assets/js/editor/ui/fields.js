@@ -1,5 +1,6 @@
 // 편집 폼에서 반복되는 입력 컴포넌트.
 import { h } from '../../core/dom.js';
+import { clampCount } from '../../shared/schema.js';
 
 /** 라벨 + 입력 묶음 */
 export function field(label, control, hint) {
@@ -22,6 +23,22 @@ export function textInput(obj, key, { onChange, maxLength = 100, placeholder = '
     placeholder,
     onInput: (e) => {
       obj[key] = e.target.value;
+      onChange?.(obj[key]);
+    },
+  });
+}
+
+/** obj[key] 에 바로 반영되는 0 이상 정수 입력 */
+export function countInput(obj, key, { max, onChange } = {}) {
+  return h('input', {
+    class: 'adm-input',
+    type: 'number',
+    min: 0,
+    max,
+    inputmode: 'numeric',
+    value: String(obj[key]),
+    onInput: (e) => {
+      obj[key] = clampCount(e.target.value, max);
       onChange?.(obj[key]);
     },
   });

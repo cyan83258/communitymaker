@@ -1,9 +1,9 @@
 // 게시글 편집 화면 (#/p/:id/post/:postId)
 import { h, replace } from '../../core/dom.js';
 import { authorName, NICK_BASES } from '../../shared/nickname.js';
-import { LIMITS } from '../../shared/schema.js';
+import { LIMITS, CONCEPT_THRESHOLD, isConcept } from '../../shared/schema.js';
 import { screen, section, saveStatus } from '../ui/layout.js';
-import { field, textInput, segmented } from '../ui/fields.js';
+import { field, textInput, segmented, countInput } from '../ui/fields.js';
 import { promptSheet } from '../ui/sheet.js';
 import { richEditor } from '../components/richEditor.js';
 import { commentEditor } from '../components/commentEditor.js';
@@ -52,6 +52,19 @@ export function mountPost(root, { session, params, navigate }) {
   authorBtn.textContent = authorName(post);
   authorBtn.classList.toggle('is-auto', !post.authorNick);
 
+  // ── 추천 / 비추천 ──
+  const conceptHint = h('p', { class: 'adm-hint' });
+  function refreshConcept() {
+    conceptHint.textContent = isConcept(post)
+      ? `⭐ 개념글로 표시됩니다. (추천 - 비추천 = ${post.upvotes - post.downvotes})`
+      : `추천 - 비추천이 ${CONCEPT_THRESHOLD} 이상이면 목록에 ⭐ 개념글 표시가 붙습니다. (현재 ${post.upvotes - post.downvotes})`;
+  }
+  function onVoteChange() {
+    refreshConcept();
+    changed();
+  }
+  refreshConcept();
+
   // ── 본문 ──
   const body = richEditor({
     html: post.bodyHtml,
@@ -94,19 +107,13 @@ export function mountPost(root, { session, params, navigate }) {
               changed();
             },
           })),
-          field('조회수', h('input', {
-            class: 'adm-input',
-            type: 'number',
-            min: 0,
-            max: LIMITS.views,
-            inputmode: 'numeric',
-            value: String(post.views),
-            onInput: (e) => {
-              post.views = Math.max(0, Math.min(LIMITS.views, Math.floor(Number(e.target.value) || 0)));
-              changed();
-            },
-          })),
+          field('조회수', countInput(post, 'views', { max: LIMITS.views, onChange: changed })),
         ),
+        h('div', { class: 'adm-row' },
+          field('추천', countInput(post, 'upvotes', { max: LIMITS.votes, onChange: onVoteChange })),
+          field('비추천', countInput(post, 'downvotes', { max: LIMITS.votes, onChange: onVoteChange })),
+        ),
+        conceptHint,
       ),
       section('본문', body.el, h('p', { class: 'adm-hint' }, '글자를 선택한 뒤 색상·크기를 고르세요. 사진이나 [이미지] 칸을 누르면 삭제할 수 있습니다.')),
       section(`댓글`, comments.el),

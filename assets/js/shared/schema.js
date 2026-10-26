@@ -18,7 +18,11 @@ export const LIMITS = {
   posts: 300,
   comments: 500,
   views: 99_999_999,
+  votes: 9_999_999,
 };
+
+/** 추천 - 비추천 이 이 값 이상이면 개념글(⭐) */
+export const CONCEPT_THRESHOLD = 20;
 
 export const BANNER_SLOTS = ['top', 'bottom'];
 export const BANNER_TYPES = ['text', 'image'];
@@ -57,6 +61,8 @@ export function createPost(project) {
     authorNick: '',
     date: toLocalInput(),
     views: 0,
+    upvotes: 0,
+    downvotes: 0,
     bodyHtml: '<p>내용을 입력하세요.</p>',
     comments: [],
   };
@@ -94,6 +100,11 @@ const color = (v, fallback) => (typeof v === 'string' && COLOR_RE.test(v) ? v.to
 const date = (v) => (isLocalInput(v) ? v : toLocalInput());
 const id = (v) => (isId(v) ? v : uid());
 const list = (v, max, fn) => (Array.isArray(v) ? v.slice(0, max).map(fn) : []);
+/** 0 ~ max 사이 정수 (잘못된 값은 0) */
+export const clampCount = (v, max) => {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) ? Math.min(Math.max(n, 0), max) : 0;
+};
 
 export function normalizeComment(c = {}) {
   return {
@@ -107,14 +118,15 @@ export function normalizeComment(c = {}) {
 }
 
 export function normalizePost(p = {}) {
-  const views = Math.floor(Number(p.views));
   return {
     id: id(p.id),
     title: str(p.title, LIMITS.postTitle),
     nickBase: normalizeNickBase(p.nickBase),
     authorNick: str(p.authorNick, LIMITS.nick),
     date: date(p.date),
-    views: Number.isFinite(views) ? Math.min(Math.max(views, 0), LIMITS.views) : 0,
+    views: clampCount(p.views, LIMITS.views),
+    upvotes: clampCount(p.upvotes, LIMITS.votes),
+    downvotes: clampCount(p.downvotes, LIMITS.votes),
     bodyHtml: str(p.bodyHtml, LIMITS.bodyHtml),
     comments: toTreeOrder(list(p.comments, LIMITS.comments, normalizeComment)),
   };
@@ -147,6 +159,11 @@ export function normalizeContent(p = {}) {
 /** 본문에 사진 또는 [이미지] 칸이 있는지 (목록의 🖼️ 표시용) */
 export function hasImage(post) {
   return /class="cm-(?:img|ph)"/.test(post.bodyHtml);
+}
+
+/** 개념글 여부 (추천 - 비추천 >= CONCEPT_THRESHOLD) */
+export function isConcept(post) {
+  return post.upvotes - post.downvotes >= CONCEPT_THRESHOLD;
 }
 
 /** 열람용으로 공개해도 되는 필드만 남긴다. */

@@ -7,7 +7,7 @@ import { sanitizeToFragment } from '../core/sanitize.js';
 import { authorName, commentNames } from '../shared/nickname.js';
 import { formatShort, formatFull } from '../shared/format.js';
 import { commentDepths } from '../shared/comments.js';
-import { hasImage } from '../shared/schema.js';
+import { hasImage, isConcept } from '../shared/schema.js';
 
 const fmtNumber = (n) => Number(n || 0).toLocaleString('ko-KR');
 
@@ -46,7 +46,8 @@ function renderList(view, links) {
       h('li', null,
         h('a', { class: 'cm-item', href: links.post(post.id) },
           h('div', { class: 'cm-item-title' },
-            hasImage(post) && h('span', { class: 'cm-item-img', 'aria-label': '이미지 포함' }, '🖼️'),
+            isConcept(post) && h('span', { class: 'cm-item-icon', 'aria-label': '개념글' }, '⭐'),
+            hasImage(post) && h('span', { class: 'cm-item-icon', 'aria-label': '이미지 포함' }, '🖼️'),
             post.title,
             post.comments.length > 0 && h('span', { class: 'cm-item-cnt' }, `[${post.comments.length}]`),
           ),
@@ -54,6 +55,7 @@ function renderList(view, links) {
             h('span', null, authorName(post)),
             h('span', null, formatShort(post.date)),
             h('span', null, `조회 ${fmtNumber(post.views)}`),
+            h('span', null, `추천 ${fmtNumber(post.upvotes)}`),
           ),
         ),
       ),
@@ -85,6 +87,14 @@ function renderComments(post) {
   );
 }
 
+/** 본문 아래 추천/비추천 개수 (표시 전용) */
+function renderVotes(post) {
+  return h('div', { class: 'cm-votes' },
+    h('div', { class: 'cm-vote is-up' }, h('b', null, fmtNumber(post.upvotes)), h('span', null, '추천')),
+    h('div', { class: 'cm-vote is-down' }, h('b', null, fmtNumber(post.downvotes)), h('span', null, '비추천')),
+  );
+}
+
 function renderPost(post, links, resolveAsset) {
   return [
     h('article', null,
@@ -97,11 +107,13 @@ function renderPost(post, links, resolveAsset) {
           ),
           h('div', { class: 'cm-post-meta-right' },
             h('span', null, `조회 ${fmtNumber(post.views)}`),
+            h('span', null, `추천 ${fmtNumber(post.upvotes)}`),
             h('span', null, `댓글 ${post.comments.length}`),
           ),
         ),
       ),
       h('div', { class: 'cm-body' }, sanitizeToFragment(post.bodyHtml, resolveAsset)),
+      renderVotes(post),
     ),
     renderComments(post),
     h('div', { class: 'cm-post-nav' }, h('a', { class: 'cm-btn', href: links.list }, '목록')),
