@@ -1,0 +1,10 @@
+{
+  "name": "community-maker",
+  "version": "2.0.0",
+  "description": "모바일 커뮤니티 게시판 형태의 가짜 웹사이트 메이커 (GitHub Pages 정적 사이트)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.js"
+  }
+}

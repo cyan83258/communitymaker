@@ -1,0 +1,60 @@
+/* 공통 토큰 + 리셋 + 모바일 세로 프레임 (편집기/열람 공통) */
+:root {
+  --c-primary: #29a3e8;
+  --c-primary-dark: #1584c6;
+  --c-primary-soft: #e8f6fe;
+  --c-primary-line: #b9e2f9;
+
+  --c-text: #1f2328;
+  --c-sub: #7b8490;
+  --c-faint: #a6aeb8;
+  --c-line: #e6e9ed;
+  --c-bg: #eef1f4;
+  --c-surface: #ffffff;
+  --c-author-bg: #eeeeee;
+  --c-danger: #e5484d;
+
+  --frame-width: 480px;
+  --gutter: 14px;
+  --radius: 10px;
+  --font: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font: 15px/1.5 var(--font);
+  word-break: break-word;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+img { max-width: 100%; display: block; }
+
+/* 데스크톱에서도 모바일 세로 화면처럼 보이도록 가운데 고정 폭 프레임 */
+.frame {
+  width: 100%;
+  max-width: var(--frame-width);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--c-surface);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 481px) {
+  .frame { box-shadow: 0 0 0 1px var(--c-line), 0 6px 30px rgba(0, 0, 0, 0.06); }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
