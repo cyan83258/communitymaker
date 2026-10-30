@@ -5,7 +5,18 @@ import { isId } from '../shared/id.js';
 import { parseExportFile, toPublicView } from '../shared/schema.js';
 
 const root = document.getElementById('app');
-const links = { list: '#/', post: (id) => `#/post/${encodeURIComponent(id)}` };
+const links = {
+  list: (page) => (page > 1 ? `#/page/${page}` : '#/'),
+  post: (id) => `#/post/${encodeURIComponent(id)}`,
+};
+
+/** 해시 → { postId } 또는 { page } */
+function parseRoute(hash) {
+  const post = hash.match(/^#\/post\/([^/]+)$/);
+  if (post) return { postId: decodeURIComponent(post[1]), page: 1 };
+  const page = hash.match(/^#\/page\/(\d+)$/);
+  return { postId: null, page: page ? Number(page[1]) : 1 };
+}
 
 function showMessage(text) {
   document.title = '페이지를 찾을 수 없습니다';
@@ -22,24 +33,23 @@ async function loadView(shareId) {
 
 function startRouter({ view, assets }) {
   const resolveAsset = (id) => assets[id];
-  let listScroll = 0;
-  let lastPostId = null;
-
-  const currentPostId = () => {
-    const m = location.hash.match(/^#\/post\/([^/]+)$/);
-    return m ? decodeURIComponent(m[1]) : null;
-  };
+  /** 목록 페이지별 스크롤 위치 (글을 보고 돌아오면 복원) */
+  const listScroll = new Map();
+  let lastHash = null;
 
   function render() {
-    const postId = currentPostId();
-    if (lastPostId === null && postId) listScroll = window.scrollY;
+    const hash = location.hash || '#/';
+    const { postId, page } = parseRoute(hash);
+    if (lastHash !== null && !parseRoute(lastHash).postId) listScroll.set(lastHash, window.scrollY);
 
-    replace(root, renderSite({ view, postId, links, resolveAsset }));
+    replace(root, renderSite({ view, postId, page, links, resolveAsset }));
 
     const post = postId && view.posts.find((p) => p.id === postId);
     document.title = post ? `${post.title} - ${view.boardTitle}` : view.boardTitle || view.siteName;
-    window.scrollTo(0, postId ? 0 : listScroll);
-    lastPostId = postId;
+    // 글에서 목록으로 돌아올 때만 위치 복원, 그 외(글 열기·페이지 이동)는 맨 위로
+    const cameFromPost = lastHash !== null && parseRoute(lastHash).postId;
+    window.scrollTo(0, !postId && cameFromPost ? listScroll.get(hash) || 0 : 0);
+    lastHash = hash;
   }
 
   window.addEventListener('hashchange', render);

@@ -60,6 +60,7 @@ assets/js/editor/       편집기
   store.js              결과물/이미지 저장소 (IndexedDB)
   session.js            편집 중 상태 + 자동 저장
   transfer.js           내보내기 / 불러오기
+  shareActions.js       내보내기 안내 · 링크 복사 · 링크 재발급
   siteConfig.js         열람 사이트 주소
   views/ components/ ui/  화면 · 편집 부품 · 공통 UI
 scripts/serve.js        로컬 미리보기 서버 (배포에는 필요 없음)

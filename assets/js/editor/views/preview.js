@@ -5,7 +5,7 @@ import { toPublicView } from '../../shared/schema.js';
 
 export function mountPreview(root, { session, params }) {
   const base = `#/p/${session.id}/preview`;
-  const links = { list: base, post: (id) => `${base}/post/${id}` };
+  const links = { list: (page) => (page > 1 ? `${base}/page/${page}` : base), post: (id) => `${base}/post/${id}` };
   const backHref = params.postId ? `#/p/${session.id}/post/${params.postId}` : `#/p/${session.id}`;
 
   replace(root,
@@ -14,7 +14,13 @@ export function mountPreview(root, { session, params }) {
         h('span', null, '미리보기'),
         h('a', { class: 'adm-btn is-small is-primary', href: backHref }, '편집으로'),
       ),
-      renderSite({ view: toPublicView(session.project), postId: params.postId || null, links, resolveAsset: session.resolveAsset }),
+      renderSite({
+        view: toPublicView(session.project),
+        postId: params.postId || null,
+        page: Number(params.page) || 1,
+        links,
+        resolveAsset: session.resolveAsset,
+      }),
     ),
   );
   window.scrollTo(0, 0);

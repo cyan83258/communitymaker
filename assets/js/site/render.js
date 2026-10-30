@@ -1,6 +1,6 @@
 // 가짜 커뮤니티 화면 렌더러. 열람 페이지와 편집기 미리보기가 함께 사용한다.
 // view: { siteName, boardTitle, banners, posts }
-// links: { list: string, post: (id) => string }
+// links: { list: (page) => string, post: (id) => string }
 // resolveAsset: (assetId) => 이미지 주소 (편집기는 Blob URL, 열람 페이지는 data URL)
 import { h } from '../core/dom.js';
 import { sanitizeToFragment } from '../core/sanitize.js';
@@ -8,6 +8,10 @@ import { authorName, commentNames } from '../shared/nickname.js';
 import { formatShort, formatFull } from '../shared/format.js';
 import { commentDepths } from '../shared/comments.js';
 import { hasImage, isConcept } from '../shared/schema.js';
+import { paginate, pageOf, pager } from '../core/pagination.js';
+
+/** 목록 한 페이지당 게시글 수 */
+export const POSTS_PER_PAGE = 20;
 
 const fmtNumber = (n) => Number(n || 0).toLocaleString('ko-KR');
 
@@ -32,17 +36,18 @@ function renderBanners(banners, slot, resolveAsset) {
     banners.filter((b) => b.slot === slot).map((b) => renderBanner(b, resolveAsset)));
 }
 
-function renderHeader(view, links, showBack) {
+function renderHeader(view, links, backHref) {
   return h('header', { class: 'cm-top' },
-    showBack && h('a', { class: 'cm-top-back', href: links.list, 'aria-label': '목록으로' }, '‹'),
-    h('a', { class: 'cm-logo', href: links.list }, view.siteName || '커뮤니티'),
+    backHref && h('a', { class: 'cm-top-back', href: backHref, 'aria-label': '목록으로' }, '‹'),
+    h('a', { class: 'cm-logo', href: links.list(1) }, view.siteName || '커뮤니티'),
   );
 }
 
-function renderList(view, links) {
+function renderList(view, links, page) {
   if (!view.posts.length) return h('div', { class: 'cm-empty' }, '게시글이 없습니다.');
-  return h('ul', { class: 'cm-list' },
-    view.posts.map((post) =>
+  const paged = paginate(view.posts, page, POSTS_PER_PAGE);
+  return [h('ul', { class: 'cm-list' },
+    paged.items.map((post) =>
       h('li', null,
         h('a', { class: 'cm-item', href: links.post(post.id) },
           h('div', { class: 'cm-item-title' },
@@ -60,7 +65,8 @@ function renderList(view, links) {
         ),
       ),
     ),
-  );
+  ),
+  pager({ page: paged.page, totalPages: paged.totalPages, href: links.list })];
 }
 
 function renderComments(post) {
@@ -95,7 +101,7 @@ function renderVotes(post) {
   );
 }
 
-function renderPost(post, links, resolveAsset) {
+function renderPost(post, listHref, resolveAsset) {
   return [
     h('article', null,
       h('header', { class: 'cm-post-head' },
@@ -116,24 +122,28 @@ function renderPost(post, links, resolveAsset) {
       renderVotes(post),
     ),
     renderComments(post),
-    h('div', { class: 'cm-post-nav' }, h('a', { class: 'cm-btn', href: links.list }, '목록')),
+    h('div', { class: 'cm-post-nav' }, h('a', { class: 'cm-btn', href: listHref }, '목록')),
   ];
 }
 
 /**
  * 사이트 전체 화면을 만든다.
- * @param {{ view: object, postId?: string|null, links: object, resolveAsset: (id: string) => string|undefined }} opts
+ * @param {{ view: object, postId?: string|null, page?: number, links: object, resolveAsset: (id: string) => string|undefined }} opts
+ *        page: 목록 페이지 번호 (게시글 화면에서는 무시)
  */
-export function renderSite({ view, postId = null, links, resolveAsset }) {
-  const post = postId ? view.posts.find((p) => p.id === postId) : null;
+export function renderSite({ view, postId = null, page = 1, links, resolveAsset }) {
+  const index = postId ? view.posts.findIndex((p) => p.id === postId) : -1;
+  const post = index >= 0 ? view.posts[index] : null;
+  // 게시글에서 '목록'을 누르면 그 글이 있는 페이지로 돌아간다.
+  const listHref = links.list(post ? pageOf(index, POSTS_PER_PAGE) : 1);
   const content = post
-    ? renderPost(post, links, resolveAsset)
+    ? renderPost(post, listHref, resolveAsset)
     : postId
       ? h('div', { class: 'cm-empty' }, '삭제되었거나 존재하지 않는 게시글입니다.')
-      : renderList(view, links);
+      : renderList(view, links, page);
 
   return h('div', { class: 'cm-site' },
-    renderHeader(view, links, Boolean(postId)),
+    renderHeader(view, links, postId ? listHref : null),
     h('div', { class: 'cm-board-head' }, h('h1', { class: 'cm-board-title' }, view.boardTitle)),
     renderBanners(view.banners, 'top', resolveAsset),
     content,

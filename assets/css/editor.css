@@ -43,14 +43,9 @@
   border: 1px solid var(--c-line);
 }
 .adm-card.is-flat { padding: 12px; background: #fafbfc; }
-.adm-card-main { display: block; }
-.adm-card-name { font-size: 16px; font-weight: 700; }
-.adm-card-meta { margin-top: 2px; font-size: 12px; color: var(--c-sub); }
 .adm-card-head { display: flex; align-items: center; justify-content: space-between; }
 .adm-card-label { font-size: 13px; font-weight: 700; color: var(--c-sub); }
-.adm-card-foot { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.adm-intro { margin: 0; font-size: 13px; color: var(--c-sub); }
 .adm-empty { padding: 40px 16px; text-align: center; color: var(--c-faint); font-size: 14px; line-height: 1.7; }
 .adm-empty.is-small { padding: 14px; }
 .adm-loading { padding: 60px 16px; text-align: center; color: var(--c-faint); }
@@ -127,14 +122,31 @@
 }
 
 /* ── 공유 설정 ── */
-.adm-share { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--c-line); }
 .adm-share-link { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: var(--c-primary-soft); }
 .adm-share-url { font-size: 13px; color: var(--c-primary-dark); word-break: break-all; text-decoration: underline; }
 .adm-share-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-.adm-share-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.adm-share-file { font-size: 12px; color: var(--c-sub); font-family: ui-monospace, Consolas, monospace; }
 .adm-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 .adm-steps .adm-btn { margin-top: 6px; }
+
+/* ── 결과물 목록 (대시보드) ── */
+.adm-search { height: 44px; border-radius: 22px; padding: 0 16px; }
+.adm-plist { display: flex; flex-direction: column; border-radius: var(--radius); overflow: hidden; background: var(--c-surface); }
+.adm-plist > .adm-empty { background: var(--c-bg); }
+.adm-prow { display: flex; align-items: center; border-bottom: 1px solid var(--c-line); }
+.adm-prow:last-child { border-bottom: 0; }
+.adm-prow-main { flex: 1; min-width: 0; padding: 12px 14px; }
+.adm-prow-main:active { background: var(--c-primary-soft); }
+.adm-prow-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-prow-meta { margin-top: 1px; font-size: 12px; color: var(--c-sub); }
+.adm-prow-more {
+  width: 44px; align-self: stretch; border: 0; background: none;
+  font-size: 20px; color: var(--c-sub); letter-spacing: 1px;
+}
+.adm-site-line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--c-sub); padding: 0 4px; }
+.adm-site-label { font-weight: 700; flex-shrink: 0; }
+.adm-site-url { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-link-btn { border: 0; background: none; padding: 4px; color: var(--c-primary-dark); font-size: 12px; font-weight: 700; text-decoration: underline; }
+.adm-main > .pager { padding: 4px 0; }
 
 /* ── 게시글 행 ── */
 .adm-post-row {
@@ -212,6 +224,8 @@
 .adm-sheet-msg { margin: 0; font-size: 14px; color: var(--c-sub); }
 .adm-sheet-actions { display: flex; gap: 8px; }
 .adm-sheet-actions .adm-btn { flex: 1; height: 46px; }
+.adm-sheet-actions.is-vertical { flex-direction: column; gap: 6px; }
+.adm-sheet-actions.is-vertical .adm-btn { flex: none; height: 44px; }
 
 .adm-toasts {
   position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 200;

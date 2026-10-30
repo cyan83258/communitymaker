@@ -15,7 +15,7 @@ const ROUTES = [
   { re: /^#\/?$/, view: mountDashboard },
   { re: /^#\/p\/(?<id>\w+)$/, view: mountProject, needsSession: true },
   { re: /^#\/p\/(?<id>\w+)\/post\/(?<postId>\w+)$/, view: mountPost, needsSession: true },
-  { re: /^#\/p\/(?<id>\w+)\/preview(?:\/post\/(?<postId>\w+))?$/, view: mountPreview, needsSession: true, keepScroll: true },
+  { re: /^#\/p\/(?<id>\w+)\/preview(?:\/post\/(?<postId>\w+)|\/page\/(?<page>\d+))?$/, view: mountPreview, needsSession: true, keepScroll: true },
 ];
 
 /** @type {ProjectSession|null} */

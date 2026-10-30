@@ -54,6 +54,17 @@ img { max-width: 100%; display: block; }
   .frame { box-shadow: 0 0 0 1px var(--c-line), 0 6px 30px rgba(0, 0, 0, 0.06); }
 }
 
+/* 페이지 번호 (core/pagination.js) */
+.pager { display: flex; justify-content: center; align-items: center; gap: 4px; padding: 16px var(--gutter); }
+.pager-item {
+  min-width: 32px; height: 32px; padding: 0 6px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--c-line); background: var(--c-surface);
+  font-size: 14px; color: var(--c-text);
+}
+.pager-item.is-current { background: var(--c-primary); border-color: var(--c-primary); color: #fff; font-weight: 700; }
+.pager-item.is-disabled { color: var(--c-faint); border-color: transparent; background: none; }
+
 .sr-only {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap;

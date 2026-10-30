@@ -6,7 +6,14 @@ import { createProject, normalizeContent, collectAssetIds } from '../shared/sche
 const now = () => new Date().toISOString();
 
 export function summary(p) {
-  return { id: p.id, name: p.name, shareId: p.shareId, postCount: p.posts.length, updatedAt: p.updatedAt };
+  return {
+    id: p.id,
+    name: p.name,
+    boardTitle: p.boardTitle,
+    shareId: p.shareId,
+    postCount: p.posts.length,
+    updatedAt: p.updatedAt,
+  };
 }
 
 export const projectStore = {

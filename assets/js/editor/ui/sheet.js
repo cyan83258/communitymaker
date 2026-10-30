@@ -2,10 +2,11 @@
 import { h } from '../../core/dom.js';
 
 /**
- * @param {{ title: string, body?: Node|Node[], actions: { label: string, value: any, kind?: 'primary'|'danger' }[], initialFocus?: HTMLElement }} opts
+ * @param {{ title: string, body?: Node|Node[], actions: { label: string, value: any, kind?: 'primary'|'danger' }[], initialFocus?: HTMLElement, vertical?: boolean }} opts
+ *        vertical: 버튼을 세로 목록(메뉴)으로 배치
  * @returns {Promise<any>} 누른 버튼의 value (바깥을 누르면 null)
  */
-export function openSheet({ title, body = [], actions, initialFocus }) {
+export function openSheet({ title, body = [], actions, initialFocus, vertical = false }) {
   return new Promise((resolve) => {
     const close = (value) => {
       document.removeEventListener('keydown', onKey);
@@ -27,7 +28,7 @@ export function openSheet({ title, body = [], actions, initialFocus }) {
     },
       h('div', { class: 'adm-sheet-title' }, title),
       h('div', { class: 'adm-sheet-body' }, body),
-      h('div', { class: 'adm-sheet-actions' },
+      h('div', { class: vertical ? 'adm-sheet-actions is-vertical' : 'adm-sheet-actions' },
         actions.map((a) =>
           h('button', {
             type: a.kind ? 'submit' : 'button',

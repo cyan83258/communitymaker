@@ -1,13 +1,19 @@
-// 결과물 목록 화면 (#/)
+// 결과물 목록 화면 (#/) — 검색 + 10개씩 페이지 + 항목별 메뉴(⋯)
 import { h, replace } from '../../core/dom.js';
+import { paginate, pager } from '../../core/pagination.js';
 import { uid } from '../../shared/id.js';
-import { screen, section } from '../ui/layout.js';
+import { screen } from '../ui/layout.js';
 import { openSheet, promptSheet, confirmSheet } from '../ui/sheet.js';
 import { toast } from '../ui/toast.js';
 import { projectStore } from '../store.js';
 import { readExportFile, importParsed } from '../transfer.js';
 import { getViewerBase, setViewerBase } from '../siteConfig.js';
-import { shareBox } from '../components/shareBox.js';
+import { exportProject, regenerateLink, linkBlock } from '../shareActions.js';
+
+const PER_PAGE = 10;
+
+/** 화면을 다시 열어도 유지되는 검색어·페이지 */
+const state = { query: '', page: 1 };
 
 const fmtDate = (iso) => new Date(iso).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -19,33 +25,92 @@ function pickJsonFile() {
   });
 }
 
-export async function mountDashboard(root, { navigate }) {
-  const list = h('div', { class: 'adm-cards' }, h('div', { class: 'adm-loading' }, '불러오는 중…'));
-  const siteBox = h('div', { class: 'adm-stack' });
+const matches = (p, q) => !q || `${p.name} ${p.boardTitle}`.toLowerCase().includes(q);
 
-  // ── 열람 사이트 주소 ──
-  function renderSiteBox() {
-    const base = getViewerBase();
-    replace(siteBox,
-      base
-        ? h('a', { class: 'adm-share-url', href: base, target: '_blank', rel: 'noopener' }, base)
-        : h('p', { class: 'adm-hint' }, 'GitHub Pages 주소를 입력하세요. 예: https://아이디.github.io/저장소이름/'),
-      h('button', {
-        type: 'button',
-        class: 'adm-btn is-small',
-        onClick: async () => {
-          const value = await promptSheet({ title: '열람 사이트 주소', value: base, placeholder: 'https://아이디.github.io/저장소이름/', maxLength: 300 });
-          if (value === null) return;
-          if (value.trim() && !setViewerBase(value)) return toast('올바른 주소가 아닙니다.', { error: true });
-          if (!value.trim()) setViewerBase('');
-          renderSiteBox();
-          load();
-        },
-      }, base ? '주소 변경' : '주소 입력'),
+export async function mountDashboard(root, { navigate }) {
+  let projects = [];
+  const listEl = h('div', { class: 'adm-plist' }, h('div', { class: 'adm-loading' }, '불러오는 중…'));
+  const pagerEl = h('div');
+  const siteEl = h('div', { class: 'adm-site-line' });
+
+  // ── 목록 ──
+  function renderList() {
+    const q = state.query.trim().toLowerCase();
+    const filtered = projects.filter((p) => matches(p, q));
+    const paged = paginate(filtered, state.page, PER_PAGE);
+    state.page = paged.page;
+
+    replace(listEl,
+      projects.length === 0
+        ? h('div', { class: 'adm-empty' }, '아직 만든 결과물이 없습니다.', h('br'), '아래 버튼으로 첫 결과물을 만들어 보세요.')
+        : filtered.length === 0
+          ? h('div', { class: 'adm-empty' }, `'${state.query.trim()}' 검색 결과가 없습니다.`)
+          : paged.items.map(row),
     );
+    replace(pagerEl, pager({
+      page: paged.page,
+      totalPages: paged.totalPages,
+      onSelect: (p) => {
+        state.page = p;
+        renderList();
+        window.scrollTo(0, 0);
+      },
+    }));
   }
 
-  // ── 동작 ──
+  const row = (p) =>
+    h('div', { class: 'adm-prow' },
+      h('a', { class: 'adm-prow-main', href: `#/p/${p.id}` },
+        h('div', { class: 'adm-prow-name' }, p.name),
+        h('div', { class: 'adm-prow-meta' }, `게시글 ${p.postCount} · ${fmtDate(p.updatedAt)}`),
+      ),
+      h('button', { type: 'button', class: 'adm-prow-more', 'aria-label': `${p.name} 메뉴`, onClick: () => openMenu(p) }, '⋯'),
+    );
+
+  async function load() {
+    try {
+      projects = await projectStore.list();
+      renderList();
+    } catch (err) {
+      replace(listEl, h('div', { class: 'adm-empty' }, err.message));
+    }
+  }
+
+  // ── 항목 메뉴 ──
+  async function openMenu(p) {
+    const choice = await openSheet({
+      title: p.name,
+      body: linkBlock(p.shareId),
+      vertical: true,
+      actions: [
+        { label: '편집', value: 'edit' },
+        { label: '미리보기', value: 'preview' },
+        { label: '내보내기 (공유 파일)', value: 'export' },
+        { label: '링크 재발급', value: 'regen' },
+        { label: '삭제', value: 'delete', kind: 'danger' },
+      ],
+    });
+    if (choice === 'edit') navigate(`#/p/${p.id}`);
+    else if (choice === 'preview') navigate(`#/p/${p.id}/preview`);
+    else if (choice === 'export') exportProject(p.id);
+    else if (choice === 'regen' && (await regenerateLink(p.id))) load();
+    else if (choice === 'delete') remove(p);
+  }
+
+  async function remove(p) {
+    const ok = await confirmSheet({
+      title: `'${p.name}' 을(를) 삭제할까요?`,
+      message: '편집기에서 게시글과 첨부 이미지가 모두 삭제되며 되돌릴 수 없습니다. 이미 GitHub 에 올린 파일은 따로 지워야 열람이 막힙니다.',
+      okLabel: '삭제',
+      danger: true,
+    });
+    if (!ok) return;
+    await projectStore.remove(p.id);
+    toast('삭제했습니다.');
+    load();
+  }
+
+  // ── 만들기 / 불러오기 ──
   async function createNew() {
     const name = await promptSheet({ title: '새 결과물 이름', value: '', placeholder: '예: 결과물 1', maxLength: 60 });
     if (name === null) return;
@@ -82,58 +147,50 @@ export async function mountDashboard(root, { navigate }) {
     }
   }
 
-  async function remove(p) {
-    const ok = await confirmSheet({
-      title: `'${p.name}' 을(를) 삭제할까요?`,
-      message: '편집기에서 게시글과 첨부 이미지가 모두 삭제되며 되돌릴 수 없습니다. 이미 GitHub 에 올린 파일은 따로 지워야 열람이 막힙니다.',
-      okLabel: '삭제',
-      danger: true,
-    });
-    if (!ok) return;
-    await projectStore.remove(p.id);
-    toast('삭제했습니다.');
-    load();
-  }
-
-  const card = (p) =>
-    h('article', { class: 'adm-card' },
-      h('a', { class: 'adm-card-main', href: `#/p/${p.id}` },
-        h('div', { class: 'adm-card-name' }, p.name),
-        h('div', { class: 'adm-card-meta' }, `게시글 ${p.postCount}개 · ${fmtDate(p.updatedAt)} 수정`),
-      ),
-      shareBox(p),
-      h('div', { class: 'adm-card-foot' },
-        h('a', { class: 'adm-btn is-small', href: `#/p/${p.id}` }, '편집'),
-        h('a', { class: 'adm-btn is-small', href: `#/p/${p.id}/preview` }, '미리보기'),
-        h('button', { type: 'button', class: 'adm-btn is-small is-ghost-danger', onClick: () => remove(p) }, '삭제'),
-      ),
+  // ── 열람 사이트 주소 ──
+  function renderSiteLine() {
+    const base = getViewerBase();
+    replace(siteEl,
+      h('span', { class: 'adm-site-label' }, '열람 사이트'),
+      h('span', { class: 'adm-site-url' }, base || '설정 안 됨'),
+      h('button', {
+        type: 'button',
+        class: 'adm-link-btn',
+        onClick: async () => {
+          const value = await promptSheet({ title: '열람 사이트 주소', value: base, placeholder: 'https://아이디.github.io/저장소이름/', maxLength: 300 });
+          if (value === null) return;
+          if (value.trim() && !setViewerBase(value)) return toast('올바른 주소가 아닙니다.', { error: true });
+          if (!value.trim()) setViewerBase('');
+          renderSiteLine();
+        },
+      }, '변경'),
     );
-
-  async function load() {
-    try {
-      const projects = await projectStore.list();
-      replace(list,
-        projects.length
-          ? projects.map(card)
-          : h('div', { class: 'adm-empty' }, '아직 만든 결과물이 없습니다.', h('br'), '아래 버튼으로 첫 결과물을 만들어 보세요.'),
-      );
-    } catch (err) {
-      replace(list, h('div', { class: 'adm-empty' }, err.message));
-    }
   }
 
-  renderSiteBox();
+  const search = h('input', {
+    class: 'adm-input adm-search',
+    type: 'search',
+    placeholder: '결과물 검색 (이름·게시판 제목)',
+    value: state.query,
+    'aria-label': '결과물 검색',
+    onInput: (e) => {
+      state.query = e.target.value;
+      state.page = 1;
+      renderList();
+    },
+  });
+
+  renderSiteLine();
   replace(root,
     screen(
       {
         title: '내 결과물',
         right: h('button', { type: 'button', class: 'adm-top-btn', onClick: importFile }, '불러오기'),
       },
-      h('p', { class: 'adm-intro' },
-        '결과물은 이 브라우저에 저장됩니다. 공유하려면 [내보내기] 한 파일을 GitHub 저장소의 data 폴더에 올리세요. ',
-        '내보낸 파일은 [불러오기]로 다시 편집할 수 있어 백업으로도 쓸 수 있습니다.'),
-      section('열람 사이트 주소', siteBox),
-      list,
+      search,
+      listEl,
+      pagerEl,
+      siteEl,
       h('div', { class: 'adm-fab-space' }),
       h('button', { type: 'button', class: 'adm-fab', onClick: createNew }, '+ 새 결과물'),
     ),
